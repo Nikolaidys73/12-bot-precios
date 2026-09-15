@@ -41,7 +41,7 @@ public class Program
 
                 services.AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
                 {
-                    GatewayIntents = GatewayIntents.None // We only need interactions (slash commands)
+                    GatewayIntents = GatewayIntents.Guilds // We need Guilds intent to cache Roles and Channels
                 }));
                 
                 services.AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()));
