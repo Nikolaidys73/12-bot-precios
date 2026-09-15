@@ -1,0 +1,19 @@
+# Binaries
+[Bb]in/
+[Oo]bj/
+
+# Secret config
+.env
+appsettings.Development.json
+appsettings.json
+
+# Logs & Data
+logs/
+data/
+
+# OS/IDE
+.vs/
+.vscode/
+*.suo
+*.user
+.DS_Store

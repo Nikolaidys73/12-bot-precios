@@ -1,0 +1,10 @@
+bin/
+obj/
+*.bak
+*.tmp
+logs/
+.env
+.git/
+.gitignore
+.dockerignore
+*.user
