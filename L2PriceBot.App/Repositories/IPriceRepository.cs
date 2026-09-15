@@ -11,4 +11,5 @@ public interface IPriceRepository
     Task AddItemAsync(ItemPrice item);
     Task UpdateItemAsync(ItemPrice item);
     Task DeleteItemAsync(string name);
+    Task ReplaceAllItemsAsync(List<ItemPrice> items);
 }

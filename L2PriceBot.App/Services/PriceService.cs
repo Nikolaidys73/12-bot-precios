@@ -85,4 +85,9 @@ public class PriceService
         }
         await _priceRepository.DeleteItemAsync(name);
     }
+
+    public async Task ReplaceAllItemsAsync(List<ItemPrice> items)
+    {
+        await _priceRepository.ReplaceAllItemsAsync(items);
+    }
 }

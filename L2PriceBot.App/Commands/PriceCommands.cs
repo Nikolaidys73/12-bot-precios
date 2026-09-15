@@ -10,6 +10,12 @@ using L2PriceBot.App.Services;
 using L2PriceBot.App.Utils;
 using Microsoft.Extensions.Options;
 
+using System.Net.Http;
+using System.IO;
+using System.Collections.Generic;
+using L2PriceBot.App.Models;
+using ExcelDataReader;
+
 namespace L2PriceBot.App.Commands;
 
 public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
@@ -348,6 +354,80 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
         catch (Exception ex)
         {
              await FollowupAsync($"❌ Hubo un error al crear los canales: {ex.Message}. Verifica que el bot tenga el permiso 'Manage Channels' en el servidor.", ephemeral: true);
+        }
+    }
+    [SlashCommand("importar-excel", "Actualiza la lista de precios masivamente subiendo un Excel (Solo Administradores)")]
+    public async Task ImportarExcelAsync(
+        [Summary("archivo", "Archivo Excel (.xlsx o .xls) con la lista de precios")] IAttachment archivoExcel)
+    {
+        await DeferAsync(ephemeral: true);
+
+        if (!CheckPermissions())
+        {
+            await FollowupAsync("❌ No tenés permisos para ejecutar este comando.", ephemeral: true);
+            return;
+        }
+
+        if (!archivoExcel.Filename.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) && 
+            !archivoExcel.Filename.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
+        {
+            await FollowupAsync("❌ Por favor, sube un archivo Excel válido (.xlsx o .xls).", ephemeral: true);
+            return;
+        }
+
+        try
+        {
+            using var httpClient = new HttpClient();
+            var excelBytes = await httpClient.GetByteArrayAsync(archivoExcel.Url);
+            
+            using var memoryStream = new MemoryStream(excelBytes);
+            using var reader = ExcelReaderFactory.CreateReader(memoryStream);
+            
+            var dataset = reader.AsDataSet();
+            var dataTable = dataset.Tables[0];
+            
+            var newItems = new List<ItemPrice>();
+            
+            // Empezamos desde i=1 asumiendo que la fila 0 tiene los encabezados
+            for (int i = 1; i < dataTable.Rows.Count; i++)
+            {
+                var row = dataTable.Rows[i];
+                if (row.ItemArray.All(x => x == null || string.IsNullOrWhiteSpace(x.ToString())))
+                    continue;
+
+                string nombre = row[0]?.ToString() ?? string.Empty;
+                string precioStr = row[1]?.ToString() ?? "0";
+                string categoria = dataTable.Columns.Count > 2 ? (row[2]?.ToString() ?? "General") : "General";
+
+                if (string.IsNullOrWhiteSpace(nombre))
+                    continue;
+
+                int precio = PriceFormatter.ParseDC(precioStr);
+                
+                newItems.Add(new ItemPrice
+                {
+                    Name = nombre.Trim(),
+                    Price = precio,
+                    Category = string.IsNullOrWhiteSpace(categoria) ? "General" : categoria.Trim().ToUpper(),
+                    UpdatedAt = DateTime.UtcNow,
+                    UpdatedBy = Context.User.Username
+                });
+            }
+
+            if (newItems.Any())
+            {
+                await _priceService.ReplaceAllItemsAsync(newItems);
+                await _loggingService.LogAuditAsync(Context.User.Username, "IMPORT EXCEL", "Varios", $"Importados {newItems.Count} items.");
+                await FollowupAsync($"✅ Se actualizaron correctamente **{newItems.Count}** precios en la base de datos.", ephemeral: true);
+            }
+            else
+            {
+                await FollowupAsync("⚠️ El archivo Excel parecía estar vacío o no tener el formato correcto.", ephemeral: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            await FollowupAsync($"❌ Hubo un error al procesar el Excel: {ex.Message}", ephemeral: true);
         }
     }
 }

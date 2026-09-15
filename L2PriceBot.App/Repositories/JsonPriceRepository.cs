@@ -129,4 +129,9 @@ public class JsonPriceRepository : IPriceRepository
             await WriteFileAsync(items);
         }
     }
+
+    public async Task ReplaceAllItemsAsync(List<ItemPrice> items)
+    {
+        await WriteFileAsync(items);
+    }
 }
