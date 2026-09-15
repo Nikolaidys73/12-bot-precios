@@ -283,4 +283,71 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
          
          await FollowupAsync(embed: embed.Build());
     }
+
+    [SlashCommand("setup-canales", "Crea los canales para sugerencias y listas de precios (Solo Administradores)")]
+    public async Task SetupCanalesAsync()
+    {
+        await DeferAsync(ephemeral: true);
+
+        if (!CheckPermissions())
+        {
+            await FollowupAsync("❌ No tenés permisos para ejecutar este comando.", ephemeral: true);
+            return;
+        }
+
+        var guild = Context.Guild;
+        
+        try
+        {
+            var adminRole = guild.GetRole(_settings.AdminRoleId);
+            var everyoneRole = guild.EveryoneRole;
+
+            // Categoría
+            var category = await guild.CreateCategoryChannelAsync("PRECIOS L2");
+
+            // Canal 1: Lista de Precios
+            var listChannel = await guild.CreateTextChannelAsync("lista-de-precios", prop => 
+            {
+                prop.CategoryId = category.Id;
+                prop.Topic = "Ver y buscar precios del servidor. (Solo lectura)";
+            });
+
+            // Permisos canal 1: 
+            // Todos: Pueden ver, pero no hablar.
+            await listChannel.AddPermissionOverwriteAsync(everyoneRole, new OverwritePermissions(viewChannel: PermValue.Allow, sendMessages: PermValue.Deny));
+            // Bot: Puede escribir
+            var botRole = guild.CurrentUser.Roles.FirstOrDefault(r => r.IsManaged); // Assuming the bot has a managed role, otherwise use user id
+            if (botRole != null)
+                await listChannel.AddPermissionOverwriteAsync(botRole, new OverwritePermissions(sendMessages: PermValue.Allow));
+            else
+                await listChannel.AddPermissionOverwriteAsync(guild.CurrentUser, new OverwritePermissions(sendMessages: PermValue.Allow));
+
+            // Canal 2: Actualizacion de Precios
+            var updateChannel = await guild.CreateTextChannelAsync("actualizacion-de-precios", prop => 
+            {
+                prop.CategoryId = category.Id;
+                prop.Topic = "Canal privado para administradores para agregar/quitar/actualizar precios.";
+            });
+
+            // Permisos canal 2:
+            // Todos: NO VEN EL CANAL
+            await updateChannel.AddPermissionOverwriteAsync(everyoneRole, new OverwritePermissions(viewChannel: PermValue.Deny));
+            // Admin: Pueden ver y hablar
+            if (adminRole != null)
+            {
+                await updateChannel.AddPermissionOverwriteAsync(adminRole, new OverwritePermissions(viewChannel: PermValue.Allow, sendMessages: PermValue.Allow));
+            }
+
+            // Enviar mensajes iniciales automáticos
+            await listChannel.SendMessageAsync("🏪 **¡Bienvenidos a la Lista de Precios!** 🏪\n\n- Usa `/precios` para ver el catálogo completo.\n- Usa `/precio item:<nombre>` para ver un ítem específico.\n- Usa `/precio-buscar item:<texto>` para buscar.\n\n*Nota: Los precios están expresados en Donator Coins (DC).*");
+            
+            await updateChannel.SendMessageAsync($"🔒 **Canal privado de Administración**\n\nAquí los administradores pueden gestionar los precios. Comandos útiles:\n- `/precio-agregar nombre:<nombre> precio:<1500> categoria:<cat>`\n- `/precio-actualizar item:<nombre> precio:<1750>`\n- `/precio-eliminar item:<nombre>`\n\n*Nota: Las acciones quedan registradas en el log interno.*");
+
+            await FollowupAsync($"✅ Canales creados exitosamente en la categoría 'PRECIOS L2'.", ephemeral: true);
+        }
+        catch (Exception ex)
+        {
+             await FollowupAsync($"❌ Hubo un error al crear los canales: {ex.Message}. Verifica que el bot tenga el permiso 'Manage Channels' en el servidor.", ephemeral: true);
+        }
+    }
 }
