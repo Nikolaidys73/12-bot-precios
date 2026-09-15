@@ -284,7 +284,8 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
              embed.AddField("Administradores",
                 "`/precio-agregar nombre:<nombre> precio:<dc> categoria:<cat>` - Agrega un item.\n" +
                 "`/precio-actualizar item:<nombre> precio:<dc>` - Actualiza precio.\n" +
-                "`/precio-eliminar item:<nombre>` - Elimina un item.");
+                "`/precio-eliminar item:<nombre>` - Elimina un item.\n" +
+                "`/importar-excel archivo:<excel>` - Actualiza todos los precios masivamente.");
          }
          
          await FollowupAsync(embed: embed.Build());
@@ -347,7 +348,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
             // Enviar mensajes iniciales automáticos
             await listChannel.SendMessageAsync("🏪 **¡Bienvenidos a la Lista de Precios!** 🏪\n\n- Usa `/precios` para ver el catálogo completo.\n- Usa `/precio item:<nombre>` para ver un ítem específico.\n- Usa `/precio-buscar item:<texto>` para buscar.\n\n*Nota: Los precios están expresados en Donator Coins (DC).*");
             
-            await updateChannel.SendMessageAsync($"🔒 **Canal privado de Administración**\n\nAquí los administradores pueden gestionar los precios. Comandos útiles:\n- `/precio-agregar nombre:<nombre> precio:<1500> categoria:<cat>`\n- `/precio-actualizar item:<nombre> precio:<1750>`\n- `/precio-eliminar item:<nombre>`\n\n*Nota: Las acciones quedan registradas en el log interno.*");
+            await updateChannel.SendMessageAsync($"🔒 **Canal privado de Administración**\n\nAquí los administradores pueden gestionar los precios. Comandos útiles:\n- `/precio-agregar nombre:<nombre> precio:<1500> categoria:<cat>`\n- `/precio-actualizar item:<nombre> precio:<1750>`\n- `/precio-eliminar item:<nombre>`\n- `/importar-excel archivo:<excel>` para actualizar masivamente\n\n*Nota: Las acciones quedan registradas en el log interno.*");
 
             await FollowupAsync($"✅ Canales creados exitosamente en la categoría 'PRECIOS L2'.", ephemeral: true);
         }
