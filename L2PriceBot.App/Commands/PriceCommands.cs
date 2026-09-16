@@ -385,8 +385,11 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
             var lines = csvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
             
             bool isFirstLine = true;
-            foreach (var line in lines)
+            foreach (var rawLine in lines)
             {
+                var line = rawLine.Replace("\"", "").Trim();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
                 // Ignorar encabezado asumiendo que contiene "Nombre"
                 if (isFirstLine && line.StartsWith("Nombre", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -395,7 +398,8 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
                 }
                 isFirstLine = false;
                 
-                var parts = line.Split(',');
+                char separator = line.Contains(';') ? ';' : ',';
+                var parts = line.Split(separator);
                 if (parts.Length < 2) continue;
 
                 string nombre = parts[0];
@@ -405,7 +409,15 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
                 if (string.IsNullOrWhiteSpace(nombre))
                     continue;
 
-                int precio = PriceFormatter.ParseDC(precioStr);
+                int precio;
+                try
+                {
+                    precio = PriceFormatter.ParseDC(precioStr);
+                }
+                catch
+                {
+                    throw new Exception($"El item '{nombre}' tiene un precio inválido: '{precioStr}'");
+                }
                 
                 newItems.Add(new ItemPrice
                 {
