@@ -14,7 +14,6 @@ using System.Net.Http;
 using System.IO;
 using System.Collections.Generic;
 using L2PriceBot.App.Models;
-using ExcelDataReader;
 
 namespace L2PriceBot.App.Commands;
 
@@ -357,9 +356,9 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
              await FollowupAsync($"❌ Hubo un error al crear los canales: {ex.Message}. Verifica que el bot tenga el permiso 'Manage Channels' en el servidor.", ephemeral: true);
         }
     }
-    [SlashCommand("importar-excel", "Actualiza la lista de precios masivamente subiendo un Excel (Solo Administradores)")]
+    [SlashCommand("importar-excel", "Actualiza la lista de precios masivamente subiendo un archivo CSV (Solo Administradores)")]
     public async Task ImportarExcelAsync(
-        [Summary("archivo", "Archivo Excel (.xlsx o .xls) con la lista de precios")] IAttachment archivoExcel)
+        [Summary("archivo", "Archivo CSV con la lista de precios")] IAttachment archivoExcel)
     {
         await DeferAsync(ephemeral: true);
 
@@ -369,36 +368,38 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        if (!archivoExcel.Filename.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) && 
-            !archivoExcel.Filename.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
+        if (!archivoExcel.Filename.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {
-            await FollowupAsync("❌ Por favor, sube un archivo Excel válido (.xlsx o .xls).", ephemeral: true);
+            await FollowupAsync("❌ Por favor, sube un archivo CSV válido (.csv).", ephemeral: true);
             return;
         }
 
         try
         {
             using var httpClient = new HttpClient();
-            var excelBytes = await httpClient.GetByteArrayAsync(archivoExcel.Url);
-            
-            using var memoryStream = new MemoryStream(excelBytes);
-            using var reader = ExcelReaderFactory.CreateReader(memoryStream);
-            
-            var dataset = reader.AsDataSet();
-            var dataTable = dataset.Tables[0];
+            var csvContent = await httpClient.GetStringAsync(archivoExcel.Url);
             
             var newItems = new List<ItemPrice>();
+            // Leer líneas
+            var lines = csvContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
             
-            // Empezamos desde i=1 asumiendo que la fila 0 tiene los encabezados
-            for (int i = 1; i < dataTable.Rows.Count; i++)
+            bool isFirstLine = true;
+            foreach (var line in lines)
             {
-                var row = dataTable.Rows[i];
-                if (row.ItemArray.All(x => x == null || string.IsNullOrWhiteSpace(x.ToString())))
+                // Ignorar encabezado asumiendo que contiene "Nombre"
+                if (isFirstLine && line.StartsWith("Nombre", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    isFirstLine = false;
                     continue;
+                }
+                isFirstLine = false;
+                
+                var parts = line.Split(',');
+                if (parts.Length < 2) continue;
 
-                string nombre = row[0]?.ToString() ?? string.Empty;
-                string precioStr = row[1]?.ToString() ?? "0";
-                string categoria = dataTable.Columns.Count > 2 ? (row[2]?.ToString() ?? "General") : "General";
+                string nombre = parts[0];
+                string precioStr = parts[1];
+                string categoria = parts.Length > 2 ? parts[2] : "General";
 
                 if (string.IsNullOrWhiteSpace(nombre))
                     continue;
@@ -418,17 +419,17 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
             if (newItems.Any())
             {
                 await _priceService.ReplaceAllItemsAsync(newItems);
-                await _loggingService.LogAuditAsync(Context.User.Username, "IMPORT EXCEL", "Varios", $"Importados {newItems.Count} items.");
+                await _loggingService.LogAuditAsync(Context.User.Username, "IMPORT CSV", "Varios", $"Importados {newItems.Count} items.");
                 await FollowupAsync($"✅ Se actualizaron correctamente **{newItems.Count}** precios en la base de datos.", ephemeral: true);
             }
             else
             {
-                await FollowupAsync("⚠️ El archivo Excel parecía estar vacío o no tener el formato correcto.", ephemeral: true);
+                await FollowupAsync("⚠️ El archivo CSV parecía estar vacío o no tener el formato correcto.", ephemeral: true);
             }
         }
         catch (Exception ex)
         {
-            await FollowupAsync($"❌ Hubo un error al procesar el Excel: {ex.Message}", ephemeral: true);
+            await FollowupAsync($"❌ Hubo un error al procesar el archivo CSV: {ex.Message}", ephemeral: true);
         }
     }
 }
