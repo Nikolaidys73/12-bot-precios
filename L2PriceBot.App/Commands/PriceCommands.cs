@@ -377,7 +377,8 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
         try
         {
             using var httpClient = new HttpClient();
-            var csvContent = await httpClient.GetStringAsync(archivoExcel.Url);
+            var bytes = await httpClient.GetByteArrayAsync(archivoExcel.Url);
+            var csvContent = System.Text.Encoding.UTF8.GetString(bytes);
             
             var newItems = new List<ItemPrice>();
             // Leer líneas
