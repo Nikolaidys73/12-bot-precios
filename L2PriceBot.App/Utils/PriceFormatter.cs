@@ -4,28 +4,84 @@ namespace L2PriceBot.App.Utils;
 
 public static class PriceFormatter
 {
-    public static string FormatDC(int price)
+    public static string FormatDC(string price)
     {
-        return $"{price.ToString("N0", new CultureInfo("es-AR"))} DC";
+        return $"{price} DC";
     }
 
-    public static int ParseDC(string input)
+    public static string ParseDC(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "0";
+        
+        // Split by common range separators if present
+        if (input.Contains("/"))
+        {
+            var parts = input.Split('/').Select(p => FormatSingle(p.Trim()));
+            return string.Join(" / ", parts);
+        }
+        if (input.Contains("-"))
+        {
+            var parts = input.Split('-').Select(p => FormatSingle(p.Trim()));
+            return string.Join(" - ", parts);
+        }
+        
+        return FormatSingle(input);
+    }
+    
+    public static int ParseDCToInteger(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return 0;
+        
+        // Handle fraction format like "7/8"
+        if (input.Contains("/"))
+        {
+            var parts = input.Split('/');
+            if (parts.Length == 2 && decimal.TryParse(parts[0].Trim(), out decimal numerator) && 
+                decimal.TryParse(parts[1].Trim(), out decimal denominator))
+            {
+                // Calculate the average value
+                double average = (numerator + denominator) / 2.0;
+                return (int)Math.Round(average);
+            }
+            // If parsing fails, return as string format
+            return int.Parse(FormatSingle(input));
+        }
+        
+        // For regular numeric values
+        var formatted = FormatSingle(input);
+        if (int.TryParse(formatted, out int result))
+        {
+            return result;
+        }
+        
+        // If we get here, try to parse as decimal and round to integer
+        if (decimal.TryParse(formatted, out decimal decimalResult))
+        {
+            return (int)Math.Round(decimalResult);
+        }
+        
+        return 0;
+    }
+    
+    private static string FormatSingle(string input)
     {
         input = input.ToLower().Replace("dc", "").Trim();
         
-        // Handle k/K suffixes
         decimal multiplier = 1;
         if (input.EndsWith("k"))
         {
             multiplier = 1000;
             input = input.Substring(0, input.Length - 1);
         }
+        else if (input.EndsWith("m"))
+        {
+            multiplier = 1000000;
+            input = input.Substring(0, input.Length - 1);
+        }
 
-        // Remove possible thousands separators (dot or comma) if interpreted as decimal might fail depending on culture
-        input = input.Replace(".", ",").Replace(",,", ","); // Just ensure consistent decimal point for parsing if 'k' is used like 1.5k
+        input = input.Replace(".", ",").Replace(",,", ","); 
         if (input.Contains(",") && !input.EndsWith("k") && multiplier == 1) 
         {
-             // If someone inputs 1.500 it might be 1,500. So strip dots/commas if they just want thousands
             var parts = input.Split(',');
             if (parts.Length == 2 && parts[1].Length == 3)
             {
@@ -35,15 +91,15 @@ public static class PriceFormatter
 
         if (decimal.TryParse(input, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal value))
         {
-            return (int)(value * multiplier);
+            return ((int)(value * multiplier)).ToString("N0", new CultureInfo("es-AR"));
         }
         
-        // Try parsing with ES-AR culture
         if (decimal.TryParse(input, NumberStyles.Any, new CultureInfo("es-AR"), out decimal argValue))
         {
-            return (int)(argValue * multiplier);
+            return ((int)(argValue * multiplier)).ToString("N0", new CultureInfo("es-AR"));
         }
 
-        throw new System.ArgumentException("Formato de precio no válido.");
+        // Si es texto libre, simplemente lo devolvemos
+        return input;
     }
 }

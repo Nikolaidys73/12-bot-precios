@@ -137,7 +137,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
 
         try
         {
-            int precio = PriceFormatter.ParseDC(precioStr);
+            int precio = PriceFormatter.ParseDCToInteger(precioStr);
             var item = await _priceService.AddItemAsync(nombre, precio, categoria, Context.User.Username);
             await _loggingService.LogAuditAsync(Context.User.Username, "ADD", nombre, $"Added {PriceFormatter.FormatDC(precio)}");
             await FollowupAsync($"✅ Precio agregado correctamente:\n{item.Name} — {PriceFormatter.FormatDC(item.Price)}", ephemeral: true);
@@ -163,7 +163,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
 
         try
         {
-            int precio = PriceFormatter.ParseDC(precioStr);
+            int precio = PriceFormatter.ParseDCToInteger(precioStr);
             var existing = await _priceService.GetItemByNameAsync(nombre);
             if (existing == null)
             {
@@ -412,7 +412,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
                 int precio;
                 try
                 {
-                    precio = PriceFormatter.ParseDC(precioStr);
+                    precio = PriceFormatter.ParseDCToInteger(precioStr);
                 }
                 catch
                 {

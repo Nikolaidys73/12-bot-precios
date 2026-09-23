@@ -35,11 +35,11 @@ public class PriceService
         return await _priceRepository.GetItemByNameAsync(name);
     }
 
-    public async Task<ItemPrice> AddItemAsync(string name, int price, string category, string updatedBy)
+    public async Task<ItemPrice> AddItemAsync(string name, string price, string category, string updatedBy)
     {
-        if (price <= 0)
+        if (string.IsNullOrWhiteSpace(price))
         {
-            throw new ArgumentException("El precio debe ser mayor a cero.");
+            throw new ArgumentException("El precio no puede estar vacío.");
         }
 
         var item = new ItemPrice
@@ -55,11 +55,11 @@ public class PriceService
         return item;
     }
 
-    public async Task<ItemPrice> UpdateItemAsync(string name, int price, string updatedBy)
+    public async Task<ItemPrice> UpdateItemAsync(string name, string price, string updatedBy)
     {
-        if (price <= 0)
+        if (string.IsNullOrWhiteSpace(price))
         {
-            throw new ArgumentException("El precio debe ser mayor a cero.");
+            throw new ArgumentException("El precio no puede estar vacío.");
         }
 
         var existing = await _priceRepository.GetItemByNameAsync(name);
