@@ -40,7 +40,7 @@ public static class PriceFormatter
                 decimal.TryParse(parts[1].Trim(), out decimal denominator))
             {
                 // Calculate the average value
-                double average = (numerator + denominator) / 2.0;
+                decimal average = (numerator + denominator) / 2m;
                 return (int)Math.Round(average);
             }
             // If parsing fails, return as string format

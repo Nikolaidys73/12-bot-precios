@@ -138,7 +138,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
         try
         {
             int precio = PriceFormatter.ParseDCToInteger(precioStr);
-            var item = await _priceService.AddItemAsync(nombre, precio, categoria, Context.User.Username);
+            var item = await _priceService.AddItemAsync(nombre, precio.ToString(), categoria, Context.User.Username);
             await _loggingService.LogAuditAsync(Context.User.Username, "ADD", nombre, $"Added {PriceFormatter.FormatDC(precio)}");
             await FollowupAsync($"✅ Precio agregado correctamente:\n{item.Name} — {PriceFormatter.FormatDC(item.Price)}", ephemeral: true);
         }
@@ -171,8 +171,8 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
                return; 
             }
             var oldPrice = existing.Price;
-            var item = await _priceService.UpdateItemAsync(nombre, precio, Context.User.Username);
-            await _loggingService.LogAuditAsync(Context.User.Username, "UPDATE", nombre, $"Changed from {PriceFormatter.FormatDC(oldPrice)} to {PriceFormatter.FormatDC(precio)}");
+            var item = await _priceService.UpdateItemAsync(nombre, precio.ToString(), Context.User.Username);
+            await _logging_service.LogAuditAsync(Context.User.Username, "UPDATE", nombre, $"Changed from {PriceFormatter.FormatDC(oldPrice)} to {PriceFormatter.FormatDC(precio)}");
             await FollowupAsync($"✅ Precio actualizado correctamente:\n{item.Name} — {PriceFormatter.FormatDC(oldPrice)} ➡️ {PriceFormatter.FormatDC(item.Price)}", ephemeral: true);
         }
         catch (Exception ex)
@@ -422,7 +422,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
                 newItems.Add(new ItemPrice
                 {
                     Name = nombre.Trim(),
-                    Price = precio,
+                    Price = precio.ToString(),
                     Category = string.IsNullOrWhiteSpace(categoria) ? "General" : categoria.Trim().ToUpper(),
                     UpdatedAt = DateTime.UtcNow,
                     UpdatedBy = Context.User.Username
