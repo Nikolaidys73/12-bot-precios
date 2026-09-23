@@ -139,7 +139,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
         {
             int precio = PriceFormatter.ParseDCToInteger(precioStr);
             var item = await _priceService.AddItemAsync(nombre, precio.ToString(), categoria, Context.User.Username);
-            await _loggingService.LogAuditAsync(Context.User.Username, "ADD", nombre, $"Added {PriceFormatter.FormatDC(precio)}");
+            await _loggingService.LogAuditAsync(Context.User.Username, "ADD", nombre, $"Added {PriceFormatter.FormatDC(precio.ToString())}");
             await FollowupAsync($"✅ Precio agregado correctamente:\n{item.Name} — {PriceFormatter.FormatDC(item.Price)}", ephemeral: true);
         }
         catch (Exception ex)
@@ -172,7 +172,7 @@ public class PriceCommands : InteractionModuleBase<SocketInteractionContext>
             }
             var oldPrice = existing.Price;
             var item = await _priceService.UpdateItemAsync(nombre, precio.ToString(), Context.User.Username);
-            await _logging_service.LogAuditAsync(Context.User.Username, "UPDATE", nombre, $"Changed from {PriceFormatter.FormatDC(oldPrice)} to {PriceFormatter.FormatDC(precio)}");
+            await _loggingService.LogAuditAsync(Context.User.Username, "UPDATE", nombre, $"Changed from {PriceFormatter.FormatDC(oldPrice)} to {PriceFormatter.FormatDC(precio.ToString())}");
             await FollowupAsync($"✅ Precio actualizado correctamente:\n{item.Name} — {PriceFormatter.FormatDC(oldPrice)} ➡️ {PriceFormatter.FormatDC(item.Price)}", ephemeral: true);
         }
         catch (Exception ex)
